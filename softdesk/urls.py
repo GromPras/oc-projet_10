@@ -23,9 +23,11 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from users.views import UserViewSet
+from projects.views import ProjectViewSet
 
 router = routers.DefaultRouter()
 router.register(r"users", UserViewSet, basename="user")
+router.register(r"projects", ProjectViewSet, basename="project")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
