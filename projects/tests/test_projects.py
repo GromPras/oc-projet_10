@@ -56,7 +56,20 @@ class ProjectsTest(APITestCase):
         self.assertIn("title", json.loads(response.content)[0])
         self.assertNotIn("author", json.loads(response.content)[0])
         self.assertNotIn("contributors", json.loads(response.content)[0])
-    
+
+    def test_only_author_or_contributor_can_access_project(self):
+        self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
+        self.client.post(reverse("user-list"), {"username": "Joe", "birth_date": "2000-01-01", "password": "password123"}, format="json")
+        url = reverse("token_obtain_pair")
+        response = self.client.post(
+            url,
+            {"username": "Joe", "password": "password123"},
+            format="json",
+        )
+        bearer = f"Bearer {json.loads(response.content)["access"]}"
+        response = self.client.get(reverse("project-detail", kwargs={"pk": 1}), headers={"Authorization": bearer})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_detail_project_return_all_fields(self):
         self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
         response = self.client.get(reverse("project-detail", kwargs={"pk": 1}), headers={"Authorization": self.bearer})
