@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from projects.models import Project
+from projects.models import Project, Issue
 from users.models import User
 
 
@@ -23,3 +23,9 @@ class ContributorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ["contributor_ids"]
+
+
+class IssueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Issue
+        fields = "__all__"

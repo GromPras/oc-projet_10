@@ -3,13 +3,14 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from projects.models import Project
+from projects.models import Project, Issue
 from projects.serializer import (
     ProjectSerializer,
     ProjectListSerializer,
     ContributorSerializer,
+    IssueSerializer,
 )
-from projects.permissions import ProjectPermission
+from projects.permissions import ProjectPermission, IssuePermission
 
 
 class ProjectViewSet(ModelViewSet):
@@ -82,3 +83,9 @@ class ProjectViewSet(ModelViewSet):
             "Vous n'avez pas la permission de faire ceci",
             status=status.HTTP_403_FORBIDDEN,
         )
+
+
+class IssueViewSet(ModelViewSet):
+    queryset = Issue.objects.all()
+    serializer_class = IssueSerializer
+    permission_classes = [IssuePermission]
