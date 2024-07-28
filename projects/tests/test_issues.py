@@ -44,3 +44,21 @@ class IssuesTest(APITestCase):
         response = self.client.get(reverse("issue-list"), headers={"Authorization": self.bearer})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_author_of_project_can_create_issue(self):
+        response = self.client.post(
+            reverse("issue-list"),
+            {
+                "project": 1,
+                "title": "Issue 1",
+                "description": "Issue description",
+                "assigned_to": 2,
+                "priority": "low",
+                "tag": "bug",
+                "status": "to-do"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        issue = Issue.objects.get()
+        self.assertEqual(Issue.objects.count(), 1)
+        self.assertEqual(issue.author, User.objects.get(pk=1))
+        self.assertEqual(issue.assigned_to, User.objects.get(pk=2))
