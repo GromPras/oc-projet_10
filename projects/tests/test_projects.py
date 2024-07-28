@@ -76,3 +76,107 @@ class ProjectsTest(APITestCase):
         self.assertIn("title", json.loads(response.content))
         self.assertIn("author", json.loads(response.content))
         self.assertIn("contributors", json.loads(response.content))
+
+    def test_author_can_update_project(self):
+        self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
+        response = self.client.put(reverse("project-detail", kwargs={"pk": 1}), {"title": "Updated title"},headers={"Authorization": self.bearer})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Project.objects.get().title, "Updated title")
+
+    def test_only_author_can_update_project(self):
+        self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
+        self.client.post(reverse("user-list"), {"username": "Joe", "birth_date": "2000-01-01", "password": "password123"}, format="json")
+        url = reverse("token_obtain_pair")
+        response = self.client.post(
+            url,
+            {"username": "Joe", "password": "password123"},
+            format="json",
+        )
+        bearer = f"Bearer {json.loads(response.content)["access"]}"
+        response = self.client.put(reverse("project-detail", kwargs={"pk": 1}), {"title": "Updated title"},headers={"Authorization": bearer})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_author_can_destroy_project(self):
+        self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
+        response = self.client.delete(reverse("project-detail", kwargs={"pk": 1}), headers={"Authorization": self.bearer})
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Project.objects.count(), 0)
+
+    def test_only_author_can_destroy_project(self):
+        self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
+        self.client.post(reverse("user-list"), {"username": "Joe", "birth_date": "2000-01-01", "password": "password123"}, format="json")
+        url = reverse("token_obtain_pair")
+        response = self.client.post(
+            url,
+            {"username": "Joe", "password": "password123"},
+            format="json",
+        )
+        bearer = f"Bearer {json.loads(response.content)["access"]}"
+        response = self.client.delete(reverse("project-detail", kwargs={"pk": 1}), headers={"Authorization": bearer})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_author_can_add_contributor_to_project(self):
+        self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
+        self.client.post(reverse("user-list"), {"username": "Joe", "birth_date": "2000-01-01", "password": "password123"}, format="json")
+        response = self.client.post(
+            "http://testserver/projects/1/add_contributors/",
+            { "contributor_ids": [2] },
+            headers={"Authorization": self.bearer}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(User.objects.get(pk=2), Project.objects.get().contributors.all())
+
+    def test_user_cannot_add_itself_as_contributor(self):
+        self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
+        self.client.post(reverse("user-list"), {"username": "Joe", "birth_date": "2000-01-01", "password": "password123"}, format="json")
+        response = self.client.post(
+            reverse("token_obtain_pair"),
+            {"username": "Joe", "password": "password123"},
+            format="json",
+        )
+        bearer = f"Bearer {json.loads(response.content)["access"]}"
+        response = self.client.post(
+            "http://testserver/projects/1/add_contributors/",
+            { "contributor_ids": [2] },
+            headers={"Authorization": bearer}
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertNotIn(User.objects.get(pk=2), Project.objects.get().contributors.all())
+
+    def test_author_can_remove_contributors(self):
+        self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
+        self.client.post(reverse("user-list"), {"username": "Joe", "birth_date": "2000-01-01", "password": "password123"}, format="json")
+        self.client.post(
+            "http://testserver/projects/1/add_contributors/",
+            { "contributor_ids": [2] },
+            headers={"Authorization": self.bearer}
+        )
+        response = self.client.post(
+            "http://testserver/projects/1/remove_contributors/",
+            { "contributor_ids": [2] },
+            headers={"Authorization": self.bearer}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn(User.objects.get(pk=2), Project.objects.get().contributors.all())
+
+    def test_contributor_cannot_remove_itself_from_contributors(self):
+        self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
+        self.client.post(reverse("user-list"), {"username": "Joe", "birth_date": "2000-01-01", "password": "password123"}, format="json")
+        response = self.client.post(
+            reverse("token_obtain_pair"),
+            {"username": "Joe", "password": "password123"},
+            format="json",
+        )
+        bearer = f"Bearer {json.loads(response.content)["access"]}"
+        self.client.post(
+            "http://testserver/projects/1/add_contributors/",
+            { "contributor_ids": [2] },
+            headers={"Authorization": self.bearer}
+        )
+        response = self.client.post(
+            "http://testserver/projects/1/remove_contributors/",
+            { "contributor_ids": [2] },
+            headers={"Authorization": bearer}
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn(User.objects.get(pk=2), Project.objects.get().contributors.all())

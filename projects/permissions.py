@@ -28,6 +28,6 @@ class ProjectPermission(permissions.BasePermission):
                 or request.user.is_superuser
             )
         elif view.action in ["update", "partial_update", "destroy"]:
-            return obj.author == request.user or request.user.is_admin
+            return obj.author == request.user or request.user.is_superuser
         else:
             return False
