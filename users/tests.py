@@ -67,3 +67,12 @@ class UsersTest(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_unregistered_users_cannot_authenticate(self):
+        url = reverse("token_obtain_pair")
+        response = self.client.post(
+            url,
+            {"username": "Billy", "password": "password123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
