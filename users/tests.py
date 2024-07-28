@@ -51,3 +51,19 @@ class UsersTest(APITestCase):
             response = self.client.post(url, data, format="json")
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 0)
+
+    def test_registered_user_can_authenticate(self):
+        url = reverse("user-list")
+        data = {
+            "username": "Billy",
+            "password": "password123",
+            "birth_date": "2000-01-01",
+        }
+        response = self.client.post(url, data, format="json")
+        url = reverse("token_obtain_pair")
+        response = self.client.post(
+            url,
+            {"username": "Billy", "password": "password123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
