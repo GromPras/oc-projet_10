@@ -49,3 +49,10 @@ class ProjectsTest(APITestCase):
         self.assertEqual(Project.objects.get().title, default_title)
         self.assertEqual(Project.objects.get().author, User.objects.get())
         self.assertIn(User.objects.get(), Project.objects.get().contributors.all())
+
+    def test_list_projects_hidden_fields(self):
+        response = self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
+        response = self.client.get(self.list_url, headers={"Authorization": self.bearer})
+        self.assertIn("title", json.loads(response.content)[0])
+        self.assertNotIn("author", json.loads(response.content)[0])
+        self.assertNotIn("contributors", json.loads(response.content)[0])
