@@ -76,3 +76,17 @@ class UsersTest(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_rgpd_default_underaged_users(self):
+        url = reverse("user-list")
+        data = {
+            "username": "Billy",
+            "password": "password123",
+            "birth_date": "2020-01-01",
+            "can_be_contacted": True,
+            "can_data_be_shared": True,
+        }
+        response = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(User.objects.get().can_be_contacted, False)
+        self.assertEqual(User.objects.get().can_data_be_shared, False)
