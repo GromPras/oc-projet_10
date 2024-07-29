@@ -134,3 +134,123 @@ class IssuesTest(APITestCase):
         )
         response = self.client.get(reverse("project-issues", kwargs={"pk": 1}),headers={"Authorization": self.bearer})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_author_can_update_issue(self):
+        self.client.post(
+            reverse("issue-list"),
+            {
+                "project": 1,
+                "title": "Issue 1",
+                "description": "Issue description",
+                "assigned_to": 2,
+                "priority": "low",
+                "tag": "bug",
+                "status": "to-do"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        issue = Issue.objects.get()
+        self.assertEqual(issue.status, "to-do")
+        self.client.put(
+            reverse("issue-detail", kwargs={"pk": 1}),
+            {
+                "project": 1,
+                "title": "Issue 1",
+                "description": "Issue description",
+                "assigned_to": 2,
+                "priority": "low",
+                "tag": "bug",
+                "status": "in-progress"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        issue = Issue.objects.get()
+        self.assertEqual(issue.status, "in-progress")
+
+    def test_only_author_can_update_issue(self):
+        self.client.post(
+            reverse("issue-list"),
+            {
+                "project": 1,
+                "title": "Issue 1",
+                "description": "Issue description",
+                "assigned_to": 2,
+                "priority": "low",
+                "tag": "bug",
+                "status": "to-do"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        issue = Issue.objects.get()
+        self.assertEqual(issue.status, "to-do")
+        response = self.client.post(
+            reverse("token_obtain_pair"),
+            {"username": "Joe", "password": "password123"},
+            format="json",
+        )
+        bearer = f"Bearer {json.loads(response.content)["access"]}"
+        self.client.put(
+            reverse("issue-detail", kwargs={"pk": 1}),
+            {
+                "project": 1,
+                "title": "Issue 1",
+                "description": "Issue description",
+                "assigned_to": 2,
+                "priority": "low",
+                "tag": "bug",
+                "status": "in-progress"
+            },
+            headers={"Authorization": bearer}
+        )
+        issue = Issue.objects.get()
+        self.assertEqual(issue.status, "to-do")
+
+    def test_author_can_destroy_issue(self):
+        self.client.post(
+            reverse("issue-list"),
+            {
+                "project": 1,
+                "title": "Issue 1",
+                "description": "Issue description",
+                "assigned_to": 2,
+                "priority": "low",
+                "tag": "bug",
+                "status": "to-do"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        self.assertEqual(Issue.objects.count(), 1)
+        response = self.client.delete(
+            reverse("issue-detail", kwargs={"pk": 1}),
+            headers={"Authorization": self.bearer}
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Issue.objects.count(), 0)
+
+    def test_only_author_can_destroy_issue(self):
+        self.client.post(
+            reverse("issue-list"),
+            {
+                "project": 1,
+                "title": "Issue 1",
+                "description": "Issue description",
+                "assigned_to": 2,
+                "priority": "low",
+                "tag": "bug",
+                "status": "to-do"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        self.assertEqual(Issue.objects.count(), 1)
+        response = self.client.post(
+            reverse("token_obtain_pair"),
+            {"username": "Joe", "password": "password123"},
+            format="json",
+        )
+        bearer = f"Bearer {json.loads(response.content)["access"]}"
+        response = self.client.delete(
+            reverse("issue-detail", kwargs={"pk": 1}),
+            headers={"Authorization": bearer}
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Issue.objects.count(), 1)
