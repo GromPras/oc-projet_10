@@ -84,6 +84,27 @@ class ProjectViewSet(ModelViewSet):
             status=status.HTTP_403_FORBIDDEN,
         )
 
+    @action(
+        detail=True,
+        methods=["GET"],
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def issues(self, request, pk=None):
+        project = self.get_object()
+        if (
+            request.user == project.author
+            or request.user in project.contributors.all()
+        ):
+            issues = project.issue_set.all()
+            return Response(
+                IssueSerializer(issues, many=True).data,
+                status.HTTP_200_OK,
+            )
+        return Response(
+            "Vous n'avez pas la permission de faire ceci",
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
 
 class IssueViewSet(ModelViewSet):
     queryset = Issue.objects.all()

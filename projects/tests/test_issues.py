@@ -45,7 +45,7 @@ class IssuesTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_author_of_project_can_create_issue(self):
-        response = self.client.post(
+        self.client.post(
             reverse("issue-list"),
             {
                 "project": 1,
@@ -62,7 +62,7 @@ class IssuesTest(APITestCase):
         self.assertEqual(Issue.objects.count(), 1)
         self.assertEqual(issue.author, User.objects.get(pk=1))
         self.assertEqual(issue.assigned_to, User.objects.get(pk=2))
-    
+
     def test_only_author_or_contributor_can_access_issue(self):
         self.client.post(
             reverse("issue-list"),
@@ -92,5 +92,21 @@ class IssuesTest(APITestCase):
         )
         bearer = f"Bearer {json.loads(response.content)["access"]}"
         response = self.client.get(reverse("issue-detail", kwargs={"pk": 1}), headers={"Authorization": bearer})
-        print(response.content)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_can_list_project_issues(self):
+        self.client.post(
+            reverse("issue-list"),
+            {
+                "project": 1,
+                "title": "Issue 1",
+                "description": "Issue description",
+                "assigned_to": 2,
+                "priority": "low",
+                "tag": "bug",
+                "status": "to-do"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        response = self.client.get(reverse("project-issues", kwargs={"pk": 1}),headers={"Authorization": self.bearer})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
