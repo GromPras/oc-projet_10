@@ -112,5 +112,5 @@ class IssueViewSet(ModelViewSet):
     permission_classes = [IssuePermission]
 
     def perform_create(self, serializer):
-        issue = serializer.save(author=self.request.user)
+        serializer.save(author=self.request.user)
         return super().perform_create(serializer)

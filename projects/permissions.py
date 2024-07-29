@@ -1,4 +1,5 @@
 from rest_framework import permissions
+from projects.models import Project
 
 
 class ProjectPermission(permissions.BasePermission):
@@ -38,8 +39,16 @@ class IssuePermission(permissions.BasePermission):
     def has_permission(self, request, view):
         if view.action == "list":
             return False
+        elif view.action == "create":
+            project_pk = request.data.__getitem__("project")
+            project = Project.objects.get(pk=project_pk)
+            if project and (
+                project.author == request.user
+                or request.user in project.contributors.all()
+            ):
+                return True
+            return False
         if view.action in [
-            "create",
             "retrieve",
             "update",
             "partial_update",
