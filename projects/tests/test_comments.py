@@ -207,3 +207,40 @@ class CommentsTest(APITestCase):
             self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
             comment = Comment.objects.get()
             self.assertEqual(comment.description, "Lorem ipsum")
+
+    def test_author_can_destroy_comment(self):
+        self.client.post( 
+            reverse("comment-list"),
+            {
+                "issue": 1,
+                "description": "Lorem ipsum"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        self.assertEqual(Comment.objects.count(), 1)
+        comment_id = Comment.objects.get().id
+        response = self.client.delete(
+            reverse("comment-detail", kwargs={"pk": comment_id}),
+            headers={"Authorization": self.bearer}
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Comment.objects.count(), 0)
+
+    def test_only_author_can_destroy_comment(self):
+        self.client.post( 
+            reverse("comment-list"),
+            {
+                "issue": 1,
+                "description": "Lorem ipsum"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        self.assertEqual(Comment.objects.count(), 1)
+        comment_id = Comment.objects.get().id
+        for bearer in [self.bearer_contributor, self.bearer_outsider]:
+            response = self.client.delete(
+                reverse("comment-detail", kwargs={"pk": comment_id}),
+                headers={"Authorization": bearer}
+            )
+            self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+            self.assertEqual(Comment.objects.count(), 1)
