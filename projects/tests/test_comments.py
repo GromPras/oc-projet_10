@@ -62,4 +62,26 @@ class CommentsTest(APITestCase):
         response = self.client.get(reverse("comment-list"), headers={"Authorization": self.bearer})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-
+    def test_author_or_contributor_of_project_can_create_comment(self):
+        self.client.post(
+            reverse("comment-list"),
+            {
+                "issue": 1,
+                "description": "Lorem ipsum dolor sit amet"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        self.client.post(
+            reverse("comment-list"),
+            {
+                "issue": 1,
+                "description": "Lorem ipsum dolor sit amet contributores"
+            },
+            headers={"Authorization": self.bearer_contributor}
+        )
+        self.assertEqual(Comment.objects.count(), 2)
+        comments = Comment.objects.all()
+        self.assertEqual(comments[0].author, User.objects.get(pk=1))
+        self.assertEqual(comments[0].description, "Lorem ipsum dolor sit amet")
+        self.assertEqual(comments[1].author, User.objects.get(pk=2))
+        self.assertEqual(comments[1].description, "Lorem ipsum dolor sit amet contributores")
