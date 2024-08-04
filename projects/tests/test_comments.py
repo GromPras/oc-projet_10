@@ -24,6 +24,11 @@ class CommentsTest(APITestCase):
             "can_be_contacted": True,
             "can_data_be_shared": True,
         }, format="json")
+        self.client.post(url, {
+            "username": "Jimbob",
+            "birth_date": "2000-01-01",
+            "password": "password123"
+        }, format="json")
         url = reverse("token_obtain_pair")
         response = self.client.post(
             url,
@@ -37,6 +42,12 @@ class CommentsTest(APITestCase):
             format="json",
         )
         self.bearer_contributor = f"Bearer {json.loads(response.content)["access"]}"
+        response = self.client.post(
+            url,
+            {"username": "Jimbob", "password": "password123"},
+            format="json",
+        )
+        self.bearer_outsider = f"Bearer {json.loads(response.content)["access"]}"
         self.client.post(reverse("project-list"), {}, headers={"Authorization": self.bearer})
         self.client.post(
             "http://testserver/projects/1/add_contributors/",
@@ -85,3 +96,15 @@ class CommentsTest(APITestCase):
         self.assertEqual(comments[0].description, "Lorem ipsum dolor sit amet")
         self.assertEqual(comments[1].author, User.objects.get(pk=2))
         self.assertEqual(comments[1].description, "Lorem ipsum dolor sit amet contributores")
+
+    def test_only_author_and_contributor_can_create_comment(self):
+        response = self.client.post(
+            reverse("comment-list"),
+            {
+                "issue": 1,
+                "description": "Unauthorized comment",
+            },
+            headers={"Authorization": self.bearer_outsider}
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Comment.objects.count(), 0)
