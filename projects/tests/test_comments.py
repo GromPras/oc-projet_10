@@ -160,3 +160,50 @@ class CommentsTest(APITestCase):
         )
         response = self.client.get(reverse("issue-comments", kwargs={"pk": 1}), headers={"Authorization": self.bearer_outsider})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_author_can_update_comment(self):
+        self.client.post( 
+            reverse("comment-list"),
+            {
+                "issue": 1,
+                "description": "Lorem ipsum"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        comment = Comment.objects.get()
+        self.assertEqual(comment.description, "Lorem ipsum")
+        response = self.client.put(
+            reverse("comment-detail", kwargs={"pk": comment.id}),
+            {
+                "issue": 1,
+                "description": "dolor sit amet"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        comment = Comment.objects.get()
+        self.assertEqual(comment.description, "dolor sit amet")
+
+    def test_only_author_can_update_comment(self):
+        self.client.post( 
+            reverse("comment-list"),
+            {
+                "issue": 1,
+                "description": "Lorem ipsum"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        comment = Comment.objects.get()
+        self.assertEqual(comment.description, "Lorem ipsum")
+        for bearer in [self.bearer_contributor, self.bearer_outsider]:
+            response = self.client.put(
+                reverse("comment-detail", kwargs={"pk": comment.id}),
+                {
+                    "issue": 1,
+                    "description": "dolor sit amet"
+                },
+                headers={"Authorization": bearer}
+            )
+            self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+            comment = Comment.objects.get()
+            self.assertEqual(comment.description, "Lorem ipsum")
