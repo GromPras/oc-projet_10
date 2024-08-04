@@ -53,9 +53,9 @@ class ProjectsTest(APITestCase):
     def test_list_projects_hidden_fields(self):
         self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
         response = self.client.get(self.list_url, headers={"Authorization": self.bearer})
-        self.assertIn("title", json.loads(response.content)[0])
-        self.assertNotIn("author", json.loads(response.content)[0])
-        self.assertNotIn("contributors", json.loads(response.content)[0])
+        self.assertIn("title", json.loads(response.content)["results"][0])
+        self.assertNotIn("author", json.loads(response.content)["results"][0])
+        self.assertNotIn("contributors", json.loads(response.content)["results"][0])
 
     def test_only_author_or_contributor_can_access_project(self):
         self.client.post(self.list_url, {}, headers={"Authorization": self.bearer})
