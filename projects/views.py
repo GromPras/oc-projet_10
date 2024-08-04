@@ -3,14 +3,19 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
-from projects.models import Project, Issue
+from projects.models import Project, Issue, Comment
 from projects.serializer import (
     ProjectSerializer,
     ProjectListSerializer,
+    CommentSerializer,
     ContributorSerializer,
     IssueSerializer,
 )
-from projects.permissions import ProjectPermission, IssuePermission
+from projects.permissions import (
+    ProjectPermission,
+    IssuePermission,
+    CommentPermission,
+)
 
 
 class ProjectViewSet(ModelViewSet):
@@ -110,6 +115,37 @@ class IssueViewSet(ModelViewSet):
     queryset = Issue.objects.all()
     serializer_class = IssueSerializer
     permission_classes = [IssuePermission]
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+        return super().perform_create(serializer)
+
+    @action(
+        detail=True,
+        methods=["GET"],
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def comments(self, request, pk=None):
+        issue = self.get_object()
+        if (
+            request.user == issue.author
+            or request.user in issue.project.contributors.all()
+        ):
+            comments = issue.comment_set.all()
+            return Response(
+                CommentSerializer(comments, many=True).data,
+                status.HTTP_200_OK,
+            )
+        return Response(
+            "Vous n'avez pas la permission de faire ceci",
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+
+class CommentViewSet(ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [CommentPermission]
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

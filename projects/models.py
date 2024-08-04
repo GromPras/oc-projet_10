@@ -1,3 +1,4 @@
+import uuid
 import time
 from django.db import models
 from users.models import get_sentinel_user, User
@@ -84,5 +85,14 @@ class Issue(models.Model):
     status = models.CharField(
         choices=STATUS, default=TODO, max_length=11
     )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class Comment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    issue = models.ForeignKey("projects.Issue", related_name="comments", on_delete=models.CASCADE)
+    author = models.ForeignKey("users.User", related_name="comments", on_delete=models.SET(get_sentinel_user), default=None) # type: ignore
+    description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
