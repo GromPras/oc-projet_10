@@ -161,3 +161,63 @@ class UsersTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(User.objects.get(pk=2).can_be_contacted, True)
         self.assertEqual(User.objects.get(pk=2).can_data_be_shared, True)
+
+    def test_user_can_destroy_data(self):
+        url = reverse("user-list")
+        data = {
+            "username": "Billy",
+            "password": "password123",
+            "birth_date": "2000-01-01",
+            "can_be_contacted": True,
+            "can_data_be_shared": True,
+        }
+        response = self.client.post(url, data, format="json")
+        url = reverse("token_obtain_pair")
+        response = self.client.post(
+            url,
+            {"username": "Billy", "password": "password123"},
+            format="json",
+        )
+        bearer = f"Bearer {json.loads(response.content)["access"]}"
+        self.assertEqual(User.objects.count(), 1)
+        response = self.client.delete(
+            reverse("user-detail", kwargs={"pk": 1}),
+            headers={"Authorization": bearer}
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(User.objects.count(), 1)
+        self.assertEqual(User.objects.get().username, "deleted")
+
+    def test_only_owner_can_destroy_user_data(self):
+        url = reverse("user-list")
+        data = {
+            "username": "Billy",
+            "password": "password123",
+            "birth_date": "2000-01-01",
+            "can_be_contacted": True,
+            "can_data_be_shared": True,
+        }
+        response = self.client.post(url, data, format="json")
+        data = {
+            "username": "Joe",
+            "password": "password123",
+            "birth_date": "2000-01-01",
+            "can_be_contacted": True,
+            "can_data_be_shared": True,
+        }
+        response = self.client.post(url, data, format="json")
+        url = reverse("token_obtain_pair")
+        response = self.client.post(
+            url,
+            {"username": "Billy", "password": "password123"},
+            format="json",
+        )
+        bearer = f"Bearer {json.loads(response.content)["access"]}"
+        self.assertEqual(User.objects.count(), 2)
+        response = self.client.delete(
+            reverse("user-detail", kwargs={"pk": 2}),
+            headers={"Authorization": bearer}
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(User.objects.count(), 2)
+        self.assertEqual(User.objects.get(pk=2).username, "Joe")

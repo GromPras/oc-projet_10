@@ -4,7 +4,7 @@ from django.contrib.auth.models import AbstractUser
 
 def get_sentinel_user():
     return User.objects.get_or_create(
-        username="deleted", birthdate="2024-01-01"
+        username="deleted", birth_date="2024-01-01"
     )[0]
 
 
