@@ -9,6 +9,7 @@ class UserViewSet(
     mixins.RetrieveModelMixin,
     mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
+    mixins.UpdateModelMixin,
 ):
     """
     Provides users related actions
