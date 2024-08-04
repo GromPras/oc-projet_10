@@ -92,7 +92,6 @@ class UsersTest(APITestCase):
         self.assertEqual(User.objects.get().can_be_contacted, False)
         self.assertEqual(User.objects.get().can_data_be_shared, False)
 
-
     def test_user_can_update_data(self):
         url = reverse("user-list")
         data = {
@@ -123,3 +122,42 @@ class UsersTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(User.objects.get().can_be_contacted, False)
         self.assertEqual(User.objects.get().can_data_be_shared, False)
+
+    def test_only_owner_can_update_user_data(self):
+        url = reverse("user-list")
+        data = {
+            "username": "Billy",
+            "password": "password123",
+            "birth_date": "2000-01-01",
+            "can_be_contacted": True,
+            "can_data_be_shared": True,
+        }
+        response = self.client.post(url, data, format="json")
+        data = {
+            "username": "Joe",
+            "password": "password123",
+            "birth_date": "2000-01-01",
+            "can_be_contacted": True,
+            "can_data_be_shared": True,
+        }
+        response = self.client.post(url, data, format="json")
+        url = reverse("token_obtain_pair")
+        response = self.client.post(
+            url,
+            {"username": "Billy", "password": "password123"},
+            format="json",
+        )
+        bearer = f"Bearer {json.loads(response.content)["access"]}"
+        self.assertEqual(User.objects.get(pk=2).can_be_contacted, True)
+        self.assertEqual(User.objects.get(pk=2).can_data_be_shared, True)
+        response = self.client.patch(
+            reverse("user-detail", kwargs={"pk": 2}),
+            {
+                "can_be_contacted": False,
+                "can_data_be_shared": False
+            },
+            headers={"Authorization": bearer}
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(User.objects.get(pk=2).can_be_contacted, True)
+        self.assertEqual(User.objects.get(pk=2).can_data_be_shared, True)

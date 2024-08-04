@@ -1,6 +1,7 @@
 from rest_framework import mixins, viewsets
 from users.models import User
 from users.serializer import UserSerializer
+from users.permissions import UserPermission
 
 
 class UserViewSet(
@@ -17,4 +18,4 @@ class UserViewSet(
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = []
+    permission_classes = [UserPermission]
