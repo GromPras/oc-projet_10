@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from projects.models import Project, Issue, Comment
+from users.models import User
 from projects.serializer import (
     ProjectSerializer,
     ProjectListSerializer,
@@ -24,6 +25,12 @@ class ProjectViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         project = serializer.save(author=self.request.user)
+        contributors = self.request.data["contributors"]
+        [
+            project.contributors.add(c)
+            for c in contributors
+            if User.objects.get(pk=c)
+        ]
         project.contributors.add(self.request.user)
 
     def get_serializer_class(self):
