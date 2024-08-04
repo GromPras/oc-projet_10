@@ -131,7 +131,7 @@ class IssueViewSet(ModelViewSet):
             request.user == issue.author
             or request.user in issue.project.contributors.all()
         ):
-            comments = issue.comment_set.all()
+            comments = issue.comments.all()
             return Response(
                 CommentSerializer(comments, many=True).data,
                 status.HTTP_200_OK,

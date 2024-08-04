@@ -135,3 +135,28 @@ class CommentsTest(APITestCase):
         comment_id = Comment.objects.get().id
         response = self.client.get(reverse("comment-detail", kwargs={"pk": comment_id}), headers={"Authorization": self.bearer_outsider})
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_can_list_issues_comments(self):
+        self.client.post( 
+            reverse("comment-list"),
+            {
+                "issue": 1,
+                "description": "Lorem ipsum"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        for bearer in [self.bearer, self.bearer_contributor]:
+            response = self.client.get(reverse("issue-comments", kwargs={"pk": 1}), headers={"Authorization": bearer})
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_only_author_or_contributor_can_list_issues_comments(self):
+        self.client.post( 
+            reverse("comment-list"),
+            {
+                "issue": 1,
+                "description": "Lorem ipsum"
+            },
+            headers={"Authorization": self.bearer}
+        )
+        response = self.client.get(reverse("issue-comments", kwargs={"pk": 1}), headers={"Authorization": self.bearer_outsider})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
