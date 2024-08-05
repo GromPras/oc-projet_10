@@ -136,6 +136,7 @@ class IssueViewSet(ModelViewSet):
         detail=True,
         methods=["GET"],
         permission_classes=[permissions.IsAuthenticated],
+        pagination_class=LimitOffsetPagination,
     )
     def comments(self, request, pk=None):
         issue = self.get_object()
@@ -146,7 +147,7 @@ class IssueViewSet(ModelViewSet):
         ):
             page = self.paginate_queryset(queryset)
             if page is not None:
-                serializer = self.get_serializer(page, many=True)
+                serializer = CommentSerializer(page, many=True)
                 return self.get_paginated_response(serializer.data)
 
             serializer = self.get_serializer(queryset, many=True)
