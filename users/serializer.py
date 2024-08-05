@@ -7,6 +7,16 @@ from users.models import User
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 
+    def is_underage(self, birth_date):
+        today = datetime.date.today()
+        age = (
+            today.year
+            - birth_date.year
+            - ((today.month, today.day) < (birth_date.month, birth_date.day))
+        )
+        if age < 15:
+            return True
+
     class Meta:
         model = User
         fields = [
@@ -26,13 +36,36 @@ class UserSerializer(serializers.ModelSerializer):
 
         # ensure default values on underaged users account
         birth_date = validated_data["birth_date"]
-        today = datetime.date.today()
-        age = (
-            today.year
-            - birth_date.year
-            - ((today.month, today.day) < (birth_date.month, birth_date.day))
+        validated_data["can_be_contacted"] = (
+            False
+            if self.is_underage(birth_date)
+            else validated_data["can_be_contacted"]
         )
-        if age < 15:
-            validated_data["can_be_contacted"] = False
-            validated_data["can_data_be_shared"] = False
+        validated_data["can_data_be_shared"] = (
+            False
+            if self.is_underage(birth_date)
+            else validated_data["can_data_be_shared"]
+        )
         return super(UserSerializer, self).create(validated_data)
+
+    def update(self, instance, validated_data):
+        instance.username = validated_data.get("username", instance.username)
+        instance.can_be_contacted = validated_data.get(
+            "can_be_contacted", instance.can_be_contacted
+        )
+        instance.can_data_be_shared = validated_data.get(
+            "can_data_be_shared", instance.can_data_be_shared
+        )
+        # ensure default values on underaged users account
+        birth_date = instance.birth_date
+        validated_data["can_be_contacted"] = (
+            False
+            if self.is_underage(birth_date)
+            else validated_data["can_be_contacted"]
+        )
+        validated_data["can_data_be_shared"] = (
+            False
+            if self.is_underage(birth_date)
+            else validated_data["can_data_be_shared"]
+        )
+        return super().update(instance, validated_data)
