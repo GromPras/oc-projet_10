@@ -6,6 +6,8 @@ from users.models import User
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    can_be_contacted = serializers.BooleanField(default=False)
+    can_data_be_shared = serializers.BooleanField(default=False)
 
     def is_underage(self, birth_date):
         today = datetime.date.today()
@@ -39,12 +41,12 @@ class UserSerializer(serializers.ModelSerializer):
         validated_data["can_be_contacted"] = (
             False
             if self.is_underage(birth_date)
-            else validated_data["can_be_contacted"]
+            else validated_data.get("can_be_contacted")
         )
         validated_data["can_data_be_shared"] = (
             False
             if self.is_underage(birth_date)
-            else validated_data["can_data_be_shared"]
+            else validated_data.get("can_data_be_shared")
         )
         return super(UserSerializer, self).create(validated_data)
 
@@ -61,11 +63,11 @@ class UserSerializer(serializers.ModelSerializer):
         validated_data["can_be_contacted"] = (
             False
             if self.is_underage(birth_date)
-            else validated_data["can_be_contacted"]
+            else validated_data.get("can_be_contacted")
         )
         validated_data["can_data_be_shared"] = (
             False
             if self.is_underage(birth_date)
-            else validated_data["can_data_be_shared"]
+            else validated_data.get("can_data_be_shared")
         )
         return super().update(instance, validated_data)

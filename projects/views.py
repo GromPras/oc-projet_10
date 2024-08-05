@@ -1,6 +1,7 @@
 from rest_framework import permissions
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 from projects.models import Project, Issue, Comment
@@ -25,7 +26,7 @@ class ProjectViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         project = serializer.save(author=self.request.user)
-        contributors = self.request.data["contributors"]
+        contributors = self.request.data.get("contributors", [])
         [
             project.contributors.add(c)
             for c in contributors
@@ -100,18 +101,22 @@ class ProjectViewSet(ModelViewSet):
         detail=True,
         methods=["GET"],
         permission_classes=[permissions.IsAuthenticated],
+        pagination_class=LimitOffsetPagination,
     )
     def issues(self, request, pk=None):
         project = self.get_object()
+        queryset = project.issue_set.all()
         if (
             request.user == project.author
             or request.user in project.contributors.all()
         ):
-            issues = project.issue_set.all()
-            return Response(
-                IssueSerializer(issues, many=True).data,
-                status.HTTP_200_OK,
-            )
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
         return Response(
             "Vous n'avez pas la permission de faire ceci",
             status=status.HTTP_403_FORBIDDEN,
@@ -134,15 +139,18 @@ class IssueViewSet(ModelViewSet):
     )
     def comments(self, request, pk=None):
         issue = self.get_object()
+        queryset = issue.comments.all()
         if (
             request.user == issue.author
             or request.user in issue.project.contributors.all()
         ):
-            comments = issue.comments.all()
-            return Response(
-                CommentSerializer(comments, many=True).data,
-                status.HTTP_200_OK,
-            )
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
         return Response(
             "Vous n'avez pas la permission de faire ceci",
             status=status.HTTP_403_FORBIDDEN,
