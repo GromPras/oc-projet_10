@@ -1,5 +1,6 @@
 from rest_framework import permissions
 from projects.models import Project, Issue
+from users.models import User
 
 
 class ProjectPermission(permissions.BasePermission):
@@ -46,7 +47,10 @@ class IssuePermission(permissions.BasePermission):
                 project.author == request.user
                 or request.user in project.contributors.all()
             ):
-                return True
+                assigned_to = User.objects.get(
+                    pk=request.data.get("assigned_to")
+                )
+                return assigned_to in project.contributors.all()
             return False
         if view.action in [
             "retrieve",
